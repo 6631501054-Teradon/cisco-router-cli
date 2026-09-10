@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Router CLI Console</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #0d1117;
+            color: #58a6ff;
+            font-family: 'Consolas', 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .terminal-card {
+            width: 100%;
+            max-width: 800px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        .terminal-header {
+            background: #21262d;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #30363d;
+        }
+        .window-buttons { display: flex; gap: 8px; margin-right: 15px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-red { background-color: #ff5f56; }
+        .dot-yellow { background-color: #ffbd2e; }
+        .dot-green { background-color: #27c93f; }
+        .terminal-title { color: #8b949e; font-size: 14px; font-weight: bold; }
+        .terminal-body { padding: 20px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; }
+        label { display: block; color: #8b949e; font-size: 12px; margin-bottom: 6px; text-transform: uppercase; }
+        input[type="text"] {
+            width: 100%; padding: 10px 12px; background-color: #0d1117;
+            border: 1px solid #30363d; border-radius: 6px; color: #00ff66;
+            font-family: inherit; font-size: 14px; outline: none;
+        }
+        .btn-execute {
+            width: 100%; padding: 12px; background-color: #238636; color: white;
+            border: none; border-radius: 6px; font-family: inherit; font-weight: bold; cursor: pointer;
+        }
+        .btn-execute:hover { background-color: #2ea043; }
+        
+        .target-banner {
+            margin-top: 20px;
+            padding: 10px 14px;
+            background-color: #1f242c;
+            border: 1px solid #30363d;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            color: #ffaa00;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .output-box {
+            background-color: #050505;
+            border: 1px solid #30363d;
+            border-radius: 0 0 6px 6px;
+            padding: 15px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #00ff66;
+            white-space: pre-wrap;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-card">
+        <div class="terminal-header">
+            <div class="window-buttons">
+                <div class="dot dot-red"></div>
+                <div class="dot dot-yellow"></div>
+                <div class="dot dot-green"></div>
+            </div>
+            <div class="terminal-title">cisco-router-cli@ubuntu:~$</div>
+        </div>
+
+        <div class="terminal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Router IP</label>
+                    <input type="text" id="ip" value="192.168.200.250" placeholder="192.168.200.250">
+                </div>
+                <div class="form-group">
+                    <label>Command Line</label>
+                    <input type="text" id="command" placeholder="show ip interface brief">
+                </div>
+            </div>
+
+            <button class="btn-execute" onclick="runCommand()">EXECUTE COMMAND</button>
+
+            <!-- แถบระบุ Router IP และชื่อเครื่อง -->
+            <div class="target-banner" id="target-banner">CONNECTED ROUTER: [ NOT CONNECTED ]</div>
+            <div class="output-box" id="output">System Ready. Waiting for command execution...</div>
+        </div>
+    </div>
+
+    <script>
+        async function runCommand() {
+            const ip = document.getElementById('ip').value;
+            const command = document.getElementById('command').value;
+            const outputElement = document.getElementById('output');
+            const targetBanner = document.getElementById('target-banner');
+
+            if (!ip || !command) {
+                alert('Please fill in both Router IP and Command Line!');
+                return;
+            }
+
+            let routerName = "UNKNOWN ROUTER";
+            if (ip === "192.168.200.250") routerName = "ROUTER R1";
+            else if (ip === "192.168.200.251") routerName = "ROUTER R2";
+
+            targetBanner.innerText = `CONNECTED ROUTER: ${routerName} (${ip})`;
+            outputElement.innerText = `[+] Connecting to ${routerName} [${ip}]...\n[+] Executing: ${command}\nPlease wait...\n`;
+
+            try {
+                const response = await fetch('/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, command: command })
+                });
+                
+                const result = await response.json();
+                outputElement.innerText = `[ ${routerName} @ ${ip} ]# ${command}\n\n` + result.output;
+            } catch (err) {
+                outputElement.innerText = "Error: Failed to communicate with backend server.";
+            }
+        }
+    </script>
+</body>
+</html>
